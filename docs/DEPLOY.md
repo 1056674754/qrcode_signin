@@ -99,7 +99,7 @@ docker compose up -d --build
 在 **你的 IdP** 的 OAuth 应用里，**重定向 URL** 填：
 
 ```
-https://你的域名/api/oauth2-redirect
+https://你的域名/oauth-callback
 ```
 
 ### 6. 在 PocketBase Admin 中添加 OAuth Provider
@@ -122,4 +122,4 @@ https://你的域名/api/oauth2-redirect
 
 - **502 Bad Gateway**：检查 `pocketbase` 容器是否运行（`docker compose ps`）
 - **404 on /api**：检查 nginx 配置中的 `proxy_pass` 是否正确
-- **OAuth 重定向失败**：确认 IdP 侧的重定向 URL 与 `https://你的域名/api/oauth2-redirect` 完全一致
+- **OAuth 重定向失败**：确认 IdP 侧的重定向 URL 与 `https://你的域名/oauth-callback` 完全一致

@@ -6,7 +6,7 @@
 4. **添加 Provider**：在 OAuth2 配置中添加一个 Provider，例如：
    - **Name / Provider ID**：`google`（前端调用 `authWithOAuth2({ provider: 'google' })` 时使用该 ID）。
    - **Client ID** / **Client Secret**：从 Google Cloud Console（或你的 OIDC 提供商）创建 OAuth 客户端后获取。
-   - **Redirect URI**：在提供商后台配置为 `https://你的域名/api/oauth2-redirect`；本地测试为 `http://127.0.0.1:8090/api/oauth2-redirect`。
+   - **Redirect URI**：在提供商后台配置为前端回调地址 `https://你的域名/oauth-callback`；本地 Vite 开发为 `http://localhost:5173/oauth-callback`（与 `Login.tsx` 中 `redirect_uri` 一致，**不是** PocketBase 默认的 `/api/oauth2-redirect`）。
 5. **CORS**：若前端与 PB 不同源，在 PocketBase **Settings → API** 中把前端的 origin 加入 CORS 允许列表（如 `http://localhost:5173`）。
 
-完成以上后，前端即可使用 `pb.collection('users').authWithOAuth2({ provider: 'google' })` 完成登录。
+完成以上后，前端通过 `listAuthMethods` 取授权 URL，经 IdP 回调到 `/oauth-callback` 后使用 `authWithOAuth2Code` 完成登录。

@@ -58,7 +58,7 @@ docker compose up -d --build
 1. 设置域名 DNS 指向服务器
 2. 配置 SSL（Let's Encrypt / 证书），nginx 监听 443
 3. `.env` 中 `VITE_POCKETBASE_URL` 留空（前端用相对路径 `/api`）
-4. 在你的 OIDC 提供商（IdP）后台，重定向 URL 填：`https://你的域名/api/oauth2-redirect`
+4. 在你的 OIDC 提供商（IdP）后台，重定向 URL 填：`https://你的域名/oauth-callback`（与前端 `Login.tsx` / `OAuthCallback.tsx` 中的 `redirect_uri` 一致）
 
 首次仍需在 Admin 中建表并配置 OAuth2（见 [docs/COLLECTIONS.md](docs/COLLECTIONS.md) 与 [docs/OIDC-PROVIDER.md](docs/OIDC-PROVIDER.md)）。
 
@@ -69,9 +69,9 @@ docker compose up -d --build
 ## CORS 与回调 URL
 
 - **CORS**：前端与 PocketBase 不同源时，在 Admin → **Settings → API** 中把前端 origin（如 `http://localhost:5173`）加入 CORS 允许列表。
-- **OAuth 回调**：在 OIDC 提供商后台配置的 Redirect URI 必须与 PocketBase 的 OAuth2 回调一致，例如：
-  - 本地：`http://127.0.0.1:8090/api/oauth2-redirect`
-  - 生产：`https://你的域名/api/oauth2-redirect`（若 PB 通过反向代理暴露）。
+- **OAuth 回调**：在 OIDC 提供商后台配置的 Redirect URI 必须与前端使用的回调地址一致（`window.location.origin + '/oauth-callback'`），例如：
+  - 本地（Vite 默认）：`http://localhost:5173/oauth-callback` 或 `http://127.0.0.1:5173/oauth-callback`
+  - 生产（与前端同源）：`https://你的域名/oauth-callback`
 
 ## 安全与可选防重放
 

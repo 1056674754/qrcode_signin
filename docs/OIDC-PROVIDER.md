@@ -4,10 +4,10 @@
 
 ## 1. 在 IdP（身份提供商）侧配置重定向 URL
 
-在 **你的 OIDC 提供商** 的 OAuth2 应用里，**授权回调 / 重定向 URL** 填：
+在 **你的 OIDC 提供商** 的 OAuth2 应用里，**授权回调 / 重定向 URL** 填（须与前端 `redirect_uri` 完全一致）：
 
-- 本机：`http://localhost:8090/api/oauth2-redirect` 或 `http://127.0.0.1:8090/api/oauth2-redirect`
-- 线上：`https://你的PB域名/api/oauth2-redirect`
+- 本机（Vite 默认端口）：`http://localhost:5173/oauth-callback` 或 `http://127.0.0.1:5173/oauth-callback`
+- 线上（前端与站点同源）：`https://你的域名/oauth-callback`
 
 ## 2. `.env` 中必填项（Docker 见 `.env.docker.example`）
 
@@ -29,6 +29,6 @@
 
 ## 4. 若登录报错
 
-- **redirect_uri mismatch**：IdP 侧重定向 URL 与 PocketBase 回调完全一致（协议、主机、端口、路径 `/api/oauth2-redirect`）。
+- **redirect_uri mismatch**：IdP 侧重定向 URL 与前端回调完全一致（协议、主机、端口、路径 `/oauth-callback`）。
 - **401 / 403**：检查 Client ID / Secret 是否与 IdP 应用一致。
 - **404 或连接错误**：核对 Auth / Token / UserInfo URL 是否与 IdP 文档一致。
