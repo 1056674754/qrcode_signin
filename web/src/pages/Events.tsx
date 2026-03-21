@@ -1,0 +1,207 @@
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Link } from 'react-router-dom';
+import { pb } from '@/lib/pb';
+import type { Event } from '@/lib/pb';
+
+async function exportCSV(eventId: string, eventName: string) {
+  const records = await pb.collection('check_ins').getFullList({
+    filter: `event = "${eventId}"`,
+    sort: '-created',
+    expand: 'user',
+  });
+  const rows = [['用户', '邮箱', '签到时间']];
+  for (const r of records) {
+    const user = (r.expand as Record<string, Record<string, string>> | undefined)?.user;
+    rows.push([
+      user?.name || '匿名',
+      user?.email || '',
+      r.created ? new Date(r.created as string).toLocaleString('zh-CN') : '',
+    ]);
+  }
+  const csv = rows.map((r) => r.map((c) => `"${c}"`).join(',')).join('\n');
+  const bom = '\uFEFF';
+  const blob = new Blob([bom + csv], { type: 'text/csv;charset=utf-8;' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `${eventName}_签到记录.csv`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function CreateModal({ open, onClose, onCreate }: {
+  open: boolean;
+  onClose: () => void;
+  onCreate: (name: string) => Promise<void>;
+}) {
+  const [name, setName] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [error, setError] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    if (open) {
+      setName('');
+      setError('');
+      setCreating(false);
+      setTimeout(() => inputRef.current?.focus(), 80);
+    }
+  }, [open]);
+
+  if (!open) return null;
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name.trim() || creating) return;
+    setCreating(true);
+    setError('');
+    try {
+      await onCreate(name.trim());
+      onClose();
+    } catch (err) {
+      setError((err as Error).message || '创建失败');
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  return (
+    <div className="modal-backdrop" onClick={(e) => { if (e.target === e.currentTarget) onClose(); }}>
+      <form className="modal-content" onSubmit={handleSubmit}>
+        <h2 style={{ fontSize: 18, fontWeight: 700, marginBottom: 16 }}>创建活动</h2>
+        <input
+          ref={inputRef}
+          type="text"
+          className="input"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          placeholder="输入活动名称"
+        />
+        {error && <p className="alert alert-error" style={{ marginTop: 8 }}>{error}</p>}
+        <div style={{ display: 'flex', gap: 8, marginTop: 20, justifyContent: 'flex-end' }}>
+          <button type="button" className="btn btn-secondary" onClick={onClose}>取消</button>
+          <button type="submit" className="btn btn-primary" disabled={creating || !name.trim()}>
+            {creating ? '创建中…' : '确认'}
+          </button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
+const formatDate = (iso: string) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  if (isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+};
+
+export default function Events() {
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [modalOpen, setModalOpen] = useState(false);
+  const [exporting, setExporting] = useState<string | null>(null);
+
+  const handleExport = useCallback(async (ev: Event) => {
+    setExporting(ev.id);
+    try {
+      await exportCSV(ev.id, ev.name);
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setExporting(null);
+    }
+  }, []);
+
+  useEffect(() => {
+    pb.collection('events')
+      .getFullList<Event>({ sort: '-created' })
+      .then(setEvents)
+      .catch((e) => { console.error(e); setEvents([]); })
+      .finally(() => setLoading(false));
+  }, []);
+
+  const handleCreate = async (name: string) => {
+    const created = await pb.collection('events').create<Event>({ name });
+    setEvents((prev) => [created, ...prev]);
+  };
+
+  return (
+    <div>
+      <div className="page-header">
+        <h1 className="page-title">我的活动</h1>
+        <button className="btn btn-primary" onClick={() => setModalOpen(true)}>+ 创建</button>
+      </div>
+
+      {loading ? (
+        <p style={{ color: 'var(--text-muted)', animation: 'pulse 1.5s infinite' }}>加载中…</p>
+      ) : events.length === 0 ? (
+        <div className="empty-state">
+          <p style={{ fontSize: 15 }}>还没有活动</p>
+          <p>点击上方「创建」开始</p>
+        </div>
+      ) : (
+        <div className="events-list">
+          {events.map((ev) => (
+            <div key={ev.id} className="card event-card">
+              <div className="event-info">
+                <div className="event-name">{ev.name}</div>
+                <div className="event-time">{formatDate(ev.created)}</div>
+              </div>
+              <div style={{ display: 'flex', gap: 6, flexShrink: 0 }}>
+                <button
+                  className="btn btn-ghost event-display-btn"
+                  onClick={() => handleExport(ev)}
+                  disabled={exporting === ev.id}
+                  title="导出签到记录"
+                >
+                  {exporting === ev.id ? '…' : '↓'}
+                </button>
+                <Link to={`/display/${ev.id}`} className="btn btn-secondary event-display-btn">
+                  大屏
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <CreateModal open={modalOpen} onClose={() => setModalOpen(false)} onCreate={handleCreate} />
+
+      <style>{`
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.event-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.event-info {
+  min-width: 0;
+  flex: 1;
+}
+.event-name {
+  font-size: 15px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.event-time {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+.event-display-btn {
+  flex-shrink: 0;
+  font-size: 13px;
+  padding: 6px 14px;
+  text-decoration: none;
+}
+      `}</style>
+    </div>
+  );
+}

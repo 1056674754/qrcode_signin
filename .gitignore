@@ -1,0 +1,7 @@
+pb_data/
+node_modules/
+web/node_modules/
+web/dist/
+*.local
+.env
+.env.local
