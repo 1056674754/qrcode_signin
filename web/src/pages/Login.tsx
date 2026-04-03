@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { pb } from '@/lib/pb';
+import { LanguageSwitch, useI18n } from '@/lib/i18n';
 
 const PROVIDER = import.meta.env.VITE_OAUTH_PROVIDER || 'oidc';
 
 export default function Login() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -24,7 +26,7 @@ export default function Login() {
         (p: { name: string }) => p.name === PROVIDER
       );
       if (!provider) {
-        setError('未找到登录方式，请联系管理员');
+        setError(t('login.errNoProvider'));
         setLoading(false);
         return;
       }
@@ -40,21 +42,24 @@ export default function Login() {
       const callbackUrl = window.location.origin + '/oauth-callback';
       window.location.href = provider.authURL + encodeURIComponent(callbackUrl);
     } catch (err) {
-      setError((err as Error).message || '登录失败');
+      setError((err as Error).message || t('login.errFailed'));
       setLoading(false);
     }
   };
 
   return (
     <div className="login-page">
+      <div className="login-lang">
+        <LanguageSwitch />
+      </div>
       <div className="login-card animate-in">
         <div className="login-icon">
           <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" style={{ color: 'var(--accent)' }}>
             <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
           </svg>
         </div>
-        <h1 className="login-title">扫码签到</h1>
-        <p className="login-desc">活动签到管理平台</p>
+        <h1 className="login-title">{t('login.title')}</h1>
+        <p className="login-desc">{t('login.subtitle')}</p>
 
         {error && <p className="alert alert-error" style={{ width: '100%', textAlign: 'center' }}>{error}</p>}
 
@@ -63,10 +68,10 @@ export default function Login() {
           onClick={handleOAuth2}
           disabled={loading}
         >
-          {loading ? '正在跳转…' : '登录'}
+          {loading ? t('login.redirecting') : t('login.signIn')}
         </button>
 
-        <p className="login-hint">使用组织账号登录即可创建活动或扫码签到</p>
+        <p className="login-hint">{t('login.hint')}</p>
       </div>
 
       <style>{`
@@ -76,6 +81,12 @@ export default function Login() {
   align-items: center;
   justify-content: center;
   padding: 16px;
+  position: relative;
+}
+.login-lang {
+  position: absolute;
+  top: 16px;
+  right: 16px;
 }
 .login-card {
   display: flex;

@@ -1,8 +1,10 @@
 import { useParams, useSearchParams, useNavigate } from 'react-router-dom';
 import { useEffect } from 'react';
 import { pb } from '@/lib/pb';
+import { useI18n } from '@/lib/i18n';
 
 export default function ScanLand() {
+  const { t } = useI18n();
   const { eventId } = useParams<{ eventId: string }>();
   const [searchParams] = useSearchParams();
   const navigate = useNavigate();
@@ -28,7 +30,7 @@ export default function ScanLand() {
 
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <p style={{ animation: 'pulse 1.5s infinite' }}>正在跳转…</p>
+      <p style={{ animation: 'pulse 1.5s infinite' }}>{t('scanLand.redirecting')}</p>
     </div>
   );
 }

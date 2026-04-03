@@ -1,6 +1,7 @@
 import { useRef, useState, useEffect, useCallback } from 'react';
 import jsQR from 'jsqr';
 import { pb } from '@/lib/pb';
+import { useI18n } from '@/lib/i18n';
 
 type Payload = { v: number; e: string; c: number; m: string };
 
@@ -42,6 +43,7 @@ function createBarcodeDetector(): BarcodeDetectorInstance | null {
 }
 
 export default function CheckIn() {
+  const { t, localeTag } = useI18n();
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -85,14 +87,14 @@ export default function CheckIn() {
         name = ev.name as string;
       } catch (_) {}
       setEventName(name);
-      setSuccessTime(new Date().toLocaleString('zh-CN'));
+      setSuccessTime(new Date().toLocaleString(localeTag));
       setPhase('success');
     } catch (e) {
       submittedRef.current = false;
-      showToast('error', '二维码已过期，请重新扫码');
+      showToast('error', t('checkin.toastExpired'));
       console.warn('check-in failed:', (e as Error).message);
     }
-  }, [stopCamera, showToast]);
+  }, [stopCamera, showToast, t]);
 
   const decode = useCallback(async (canvas: HTMLCanvasElement, ctx: CanvasRenderingContext2D): Promise<string | null> => {
     if (!detectorRef.current) {
@@ -131,7 +133,7 @@ export default function CheckIn() {
         video.setAttribute('playsinline', 'true');
         video.play().then(() => setCameraReady(true));
       })
-      .catch(() => setCameraError('无法访问摄像头'));
+      .catch(() => setCameraError(t('checkin.cameraError')));
 
     const tick = async () => {
       if (cancelled || submittedRef.current || !scanningRef.current) return;
@@ -156,7 +158,7 @@ export default function CheckIn() {
       streamRef.current?.getTracks().forEach((t) => t.stop());
       streamRef.current = null;
     };
-  }, [phase, decode, submitCheckIn]);
+  }, [phase, decode, submitCheckIn, t]);
 
   // Auto-submit pending checkin from external scan → login flow
   useEffect(() => {
@@ -192,7 +194,7 @@ export default function CheckIn() {
         const payload = parsePayload(result.data);
         if (payload) { submitCheckIn(payload); return; }
       }
-      showToast('error', '未识别到有效签到码');
+      showToast('error', t('checkin.toastInvalid'));
     };
     img.src = url;
   };
@@ -210,10 +212,10 @@ export default function CheckIn() {
     return (
       <div className="checkin-result animate-in">
         <div className="checkin-result-icon success-icon">✓</div>
-        <h2>签到成功</h2>
+        <h2>{t('checkin.success')}</h2>
         <p className="checkin-event-name">{eventName}</p>
         <p className="checkin-time">{successTime}</p>
-        <button className="btn btn-primary" onClick={reset} style={{ marginTop: 24 }}>继续扫码</button>
+        <button className="btn btn-primary" onClick={reset} style={{ marginTop: 24 }}>{t('checkin.continue')}</button>
         <style>{resultCSS}</style>
       </div>
     );
@@ -222,7 +224,7 @@ export default function CheckIn() {
   return (
     <div className="checkin-page">
       <div className="page-header">
-        <h1 className="page-title">扫码签到</h1>
+        <h1 className="page-title">{t('checkin.title')}</h1>
       </div>
 
       {toast && (
@@ -242,7 +244,7 @@ export default function CheckIn() {
         {cameraReady && <div className="scanner-overlay"><div className="scanner-frame" /></div>}
         {!cameraReady && (
           <div className="scanner-placeholder">
-            {cameraError ? <p style={{ color: 'var(--error)' }}>{cameraError}</p> : <p>正在启动摄像头…</p>}
+            {cameraError ? <p style={{ color: 'var(--error)' }}>{cameraError}</p> : <p>{t('checkin.starting')}</p>}
           </div>
         )}
         <canvas ref={canvasRef} style={{ display: 'none' }} />
@@ -250,7 +252,7 @@ export default function CheckIn() {
 
       <div style={{ marginTop: 16, textAlign: 'center' }}>
         <label className="btn btn-secondary">
-          上传二维码图片
+          {t('checkin.upload')}
           <input type="file" accept="image/*" onChange={handleFile} className="sr-only" />
         </label>
       </div>

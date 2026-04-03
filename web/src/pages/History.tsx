@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { pb } from '@/lib/pb';
+import { useI18n } from '@/lib/i18n';
 
 type CheckInRecord = {
   id: string;
@@ -9,6 +10,7 @@ type CheckInRecord = {
 };
 
 export default function History() {
+  const { t, localeTag } = useI18n();
   const [records, setRecords] = useState<CheckInRecord[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -35,26 +37,26 @@ export default function History() {
     if (isNaN(d.getTime())) return '—';
     const now = new Date();
     const isToday = d.toDateString() === now.toDateString();
-    const time = d.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
-    if (isToday) return `今天 ${time}`;
+    const time = d.toLocaleTimeString(localeTag, { hour: '2-digit', minute: '2-digit' });
+    if (isToday) return `${t('history.today')} ${time}`;
     const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
-    if (d.toDateString() === yesterday.toDateString()) return `昨天 ${time}`;
-    return d.toLocaleDateString('zh-CN', { month: 'short', day: 'numeric' }) + ' ' + time;
+    if (d.toDateString() === yesterday.toDateString()) return `${t('history.yesterday')} ${time}`;
+    return d.toLocaleDateString(localeTag, { month: 'short', day: 'numeric' }) + ' ' + time;
   };
 
   return (
     <div>
       <div className="page-header">
-        <h1 className="page-title">签到记录</h1>
+        <h1 className="page-title">{t('history.title')}</h1>
       </div>
 
       {loading ? (
-        <p style={{ color: 'var(--text-muted)', animation: 'pulse 1.5s infinite' }}>加载中…</p>
+        <p style={{ color: 'var(--text-muted)', animation: 'pulse 1.5s infinite' }}>{t('history.loading')}</p>
       ) : records.length === 0 ? (
         <div className="empty-state">
-          <p style={{ fontSize: 15 }}>暂无签到记录</p>
-          <p>扫描活动二维码即可完成签到</p>
+          <p style={{ fontSize: 15 }}>{t('history.empty1')}</p>
+          <p>{t('history.empty2')}</p>
         </div>
       ) : (
         <div className="history-list">

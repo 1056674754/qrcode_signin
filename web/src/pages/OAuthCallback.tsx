@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { pb } from '@/lib/pb';
+import { useI18n } from '@/lib/i18n';
 
 export default function OAuthCallback() {
   const navigate = useNavigate();
+  const { t } = useI18n();
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -11,13 +13,13 @@ export default function OAuthCallback() {
     const code = params.get('code');
 
     if (!code) {
-      setError('缺少授权码（code），请重新登录');
+      setError(t('oauth.errCode'));
       return;
     }
 
     const saved = sessionStorage.getItem('oauth2_provider');
     if (!saved) {
-      setError('登录状态丢失，请重新登录');
+      setError(t('oauth.errState'));
       return;
     }
 
@@ -40,9 +42,9 @@ export default function OAuthCallback() {
       })
       .catch((err: Error) => {
         console.error(err);
-        setError('登录失败: ' + (err.message || '未知错误'));
+        setError(t('oauth.errFailed') + ': ' + (err.message || t('oauth.errUnknown')));
       });
-  }, [navigate]);
+  }, [navigate, t]);
 
   if (error) {
     return (
@@ -57,7 +59,7 @@ export default function OAuthCallback() {
         }}
       >
         <p style={{ color: '#f87171' }}>{error}</p>
-        <a href="/login" style={{ color: '#a78bfa' }}>返回登录</a>
+        <a href="/login" style={{ color: '#a78bfa' }}>{t('oauth.backLogin')}</a>
       </div>
     );
   }
@@ -71,7 +73,7 @@ export default function OAuthCallback() {
         justifyContent: 'center',
       }}
     >
-      <p>正在完成登录…</p>
+      <p>{t('oauth.completing')}</p>
     </div>
   );
 }

@@ -1,5 +1,7 @@
 import { Outlet, NavLink, useNavigate } from 'react-router-dom';
+import { clearTokenCookies } from '@/lib/cookies';
 import { pb } from '@/lib/pb';
+import { LanguageSwitch, useI18n } from '@/lib/i18n';
 
 const IconEvents = () => (
   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -17,18 +19,19 @@ const IconHistory = () => (
   </svg>
 );
 
-const tabs = [
-  { to: '/events', label: '活动', Icon: IconEvents },
-  { to: '/checkin', label: '扫码', Icon: IconScan },
-  { to: '/history', label: '记录', Icon: IconHistory },
-];
-
 export default function Layout() {
+  const { t } = useI18n();
+  const tabs = [
+    { to: '/events', label: t('layout.events'), Icon: IconEvents },
+    { to: '/checkin', label: t('layout.scan'), Icon: IconScan },
+    { to: '/history', label: t('layout.history'), Icon: IconHistory },
+  ];
   const user = pb.authStore.record;
   const navigate = useNavigate();
 
   const handleLogout = () => {
     pb.authStore.clear();
+    clearTokenCookies();
     navigate('/login', { replace: true });
   };
 
@@ -36,31 +39,37 @@ export default function Layout() {
     <div className="layout-root">
       {/* ---- Top bar (mobile) ---- */}
       <header className="topbar">
-        <span className="topbar-title">扫码签到</span>
+        <span className="topbar-title">{t('layout.brand')}</span>
         <div className="topbar-right">
+          <LanguageSwitch />
           <span className="topbar-user">{user?.name || user?.email || user?.id}</span>
-          <button className="btn btn-ghost topbar-logout" onClick={handleLogout}>退出</button>
+          <button className="btn btn-ghost topbar-logout" onClick={handleLogout}>{t('layout.logout')}</button>
         </div>
       </header>
 
       {/* ---- Desktop sidebar ---- */}
       <nav className="sidebar">
-        <div className="sidebar-brand">扫码签到</div>
+        <div className="sidebar-header">
+          <div className="sidebar-brand" title={t('layout.brand')}>{t('layout.brand')}</div>
+          <div className="sidebar-lang">
+            <LanguageSwitch />
+          </div>
+        </div>
         <div className="sidebar-nav">
-          {tabs.map((t) => (
+          {tabs.map((tab) => (
             <NavLink
-              key={t.to}
-              to={t.to}
+              key={tab.to}
+              to={tab.to}
               className={({ isActive }) => 'sidebar-link' + (isActive ? ' active' : '')}
             >
-              <span className="sidebar-icon"><t.Icon /></span>
-              {t.label}
+              <span className="sidebar-icon"><tab.Icon /></span>
+              {tab.label}
             </NavLink>
           ))}
         </div>
         <div className="sidebar-footer">
           <div className="sidebar-user">{user?.name || user?.email || user?.id}</div>
-          <button className="btn btn-secondary sidebar-logout" onClick={handleLogout}>退出登录</button>
+          <button className="btn btn-secondary sidebar-logout" onClick={handleLogout}>{t('layout.logoutDesktop')}</button>
         </div>
       </nav>
 
@@ -71,14 +80,14 @@ export default function Layout() {
 
       {/* ---- Bottom tab bar (mobile) ---- */}
       <nav className="tabbar">
-        {tabs.map((t) => (
+        {tabs.map((tab) => (
           <NavLink
-            key={t.to}
-            to={t.to}
+            key={tab.to}
+            to={tab.to}
             className={({ isActive }) => 'tabbar-item' + (isActive ? ' active' : '')}
           >
-            <span className="tabbar-icon"><t.Icon /></span>
-            <span className="tabbar-label">{t.label}</span>
+            <span className="tabbar-icon"><tab.Icon /></span>
+            <span className="tabbar-label">{tab.label}</span>
           </NavLink>
         ))}
       </nav>
@@ -109,6 +118,11 @@ const layoutCSS = `
 .topbar-title {
   font-size: 17px;
   font-weight: 700;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: min(160px, 42vw);
 }
 .topbar-right {
   display: flex;
@@ -203,12 +217,27 @@ const layoutCSS = `
     position: sticky;
     top: 0;
   }
-  .sidebar-brand {
-    font-size: 18px;
-    font-weight: 700;
-    padding: 4px 8px 16px;
+  .sidebar-header {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+    padding: 4px 4px 16px;
     border-bottom: 1px solid var(--border);
     margin-bottom: 12px;
+  }
+  .sidebar-brand {
+    font-size: 17px;
+    font-weight: 700;
+    line-height: 1.3;
+    min-width: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .sidebar-lang {
+    display: flex;
+    justify-content: flex-start;
   }
   .sidebar-nav {
     display: flex;
