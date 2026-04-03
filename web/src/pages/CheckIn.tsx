@@ -91,8 +91,13 @@ export default function CheckIn() {
       setPhase('success');
     } catch (e) {
       submittedRef.current = false;
-      showToast('error', t('checkin.toastExpired'));
-      console.warn('check-in failed:', (e as Error).message);
+      console.warn('check-in failed', e);
+      // ClientResponseError 会把 PocketBase 返回的 message 写在 Error.message 上
+      const display =
+        e instanceof Error && e.message && e.message !== 'Something went wrong.'
+          ? e.message
+          : t('checkin.toastExpired');
+      showToast('error', display);
     }
   }, [stopCamera, showToast, t]);
 

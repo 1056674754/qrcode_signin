@@ -76,7 +76,7 @@ docker compose up -d --build
 ## 安全与可选防重放
 
 - **密钥**：`events.secret_key` 仅由服务端 Hook 生成，且通过 API 规则仅对活动 owner 可见；大屏请使用主办已登录的浏览器打开，避免泄露密钥。
-- **动态码**：二维码内容为 `{ v, e, c, m }`，其中 `m` 为当前 3 秒时间步的 HMAC-SHA256(secret, `${counter}|${eventId}`) 的 hex；服务端在 `pb_hooks/check_ins.pb.js` 中对 `counter±1` 做容差校验，通过后才写入打卡记录。
+- **动态码**：二维码内容为 `{ v, e, c, m }`，其中 `m` 为当前 3 秒时间步的 HMAC-SHA256(secret, `${counter}|${eventId}`) 的 hex；服务端在 `pb_hooks/check_ins.pb.js` 中对 `counter` 做容差校验（默认约 ±4 个时间步），通过后才写入打卡记录。
 - **防重放（可选）**：当前实现允许同一用户在有效时间窗口内多次提交同一码；若需「同一 3 秒窗口内每人仅能打卡一次」，可在 `check_ins` 表增加 `counter` 字段并在 Hook 中查库去重，或对 `(user, event, counter)` 建唯一约束。
 
 ## 技术说明
