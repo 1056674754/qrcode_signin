@@ -51,5 +51,6 @@ Create 规则确保客户端只能把 `user` 设为当前登录用户，防止�
 ## users（系统自带）
 
 - 使用默认 Auth 集合（通常名为 `users`）。
-- 在 Collection 设置中启用 **OAuth2**，添加 Provider（如 Google），填写 Client ID、Client Secret；在 IdP 控制台登记的 Redirect URI 须为前端回调（如本地 `http://127.0.0.1:5173/oauth-callback`）。
-- 详见 README 的 OIDC 配置步骤。
+- **企业微信登录**：见 [docs/WECOM.md](WECOM.md)，用户通过自定义接口创建/绑定占位邮箱帐号，不要求在 Admin 中为企微填写内置 OAuth Provider。
+- **通用 OAuth2 / OIDC**：在 Collection 设置中启用 **OAuth2**，添加 Provider（如 Google），填写 Client ID、Client Secret；在 IdP 控制台登记的 Redirect URI 须为前端回调（如本地 `http://127.0.0.1:5173/oauth-callback`）。
+- OIDC 环境变量批量注入可参考 [OIDC-PROVIDER.md](OIDC-PROVIDER.md)。

@@ -1,4 +1,5 @@
-/// 启动时自动配置 OAuth2 Provider（从环境变量读取，无需手动在 Admin 里添加）
+/// 通用 OAuth2 / OIDC：启动时写入 users 集合的 Provider。
+/// 企业微信不走此文件，请参阅 pb_hooks/wecom_auth.pb.js 与 docs/WECOM.md。
 onBootstrap((e) => {
   e.next();
 

@@ -16,6 +16,12 @@ export default function Display() {
   const [recentCheckins, setRecentCheckins] = useState<Array<{ id: string; name: string; time: string }>>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const qrWrapRef = useRef<HTMLDivElement>(null);
+  const [qrSize, setQrSize] = useState(() =>
+    typeof window === 'undefined'
+      ? 280
+      : Math.max(120, Math.min(window.innerWidth - 64, window.innerHeight * 0.5, 500)),
+  );
 
   useEffect(() => {
     if (!eventId) return;
@@ -60,9 +66,32 @@ export default function Display() {
   }, [fetchCheckins]);
 
   useEffect(() => {
-    if (!event?.secret_key || !eventId || !canvasRef.current) return;
+    if (!event) return;
+    const el = qrWrapRef.current;
+    if (!el) return;
 
-    const qrSize = Math.min(window.innerWidth - 64, window.innerHeight * 0.5, 500);
+    const measure = () => {
+      const style = getComputedStyle(el);
+      const padX = parseFloat(style.paddingLeft) + parseFloat(style.paddingRight);
+      const innerW = el.clientWidth - padX;
+      const vw = window.innerWidth - 64;
+      const vh = window.innerHeight * 0.5;
+      const next = Math.max(120, Math.floor(Math.min(vw, vh, innerW, 500)));
+      setQrSize((prev) => (prev === next ? prev : next));
+    };
+
+    measure();
+    const ro = new ResizeObserver(measure);
+    ro.observe(el);
+    window.addEventListener('resize', measure);
+    return () => {
+      ro.disconnect();
+      window.removeEventListener('resize', measure);
+    };
+  }, [event]);
+
+  useEffect(() => {
+    if (!event?.secret_key || !eventId || !canvasRef.current) return;
 
     const tick = async () => {
       const payload = await computeProof(eventId, event.secret_key!);
@@ -79,7 +108,7 @@ export default function Display() {
     tick();
     const interval = setInterval(tick, 3000);
     return () => clearInterval(interval);
-  }, [event?.secret_key, eventId]);
+  }, [event?.secret_key, eventId, qrSize]);
 
   const toggleFullscreen = useCallback(() => {
     const el = containerRef.current;
@@ -120,7 +149,7 @@ export default function Display() {
 
       <h1 className="display-title">{event.name}</h1>
       <p className="display-hint">{t('display.scanHint')}</p>
-      <div className="display-qr-wrap">
+      <div className="display-qr-wrap" ref={qrWrapRef}>
         <canvas ref={canvasRef} className="display-canvas" />
       </div>
       <div className="display-meta">

@@ -1,5 +1,7 @@
 # 通过环境变量配置 OIDC / OAuth2 提供方
 
+> 仓库默认 **`VITE_AUTH_MODE=wecom`** 时走「企业网页授权」，与本文所述通用 OAuth **无关**。仅当设为 `oauth2` 时才需要下面配置。
+
 `pb_hooks/oauth2.pb.js` 会在启动时从环境变量写入 PocketBase `users` 集合的 OAuth2 Provider（需已存在 `PB_OAUTH2_CLIENT_ID` 等，否则会跳过）。
 
 ## 1. 在 IdP（身份提供商）侧配置重定向 URL

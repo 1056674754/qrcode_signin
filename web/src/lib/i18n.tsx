@@ -21,11 +21,15 @@ const messages: Record<
     login: {
       title: '扫码签到',
       subtitle: '活动签到管理平台',
+      subtitleWecom: '使用企业微信账号登录后即可创建活动或扫码签到',
       signIn: '登录',
+      signInWecom: '企业微信登录',
       redirecting: '正在跳转…',
       hint: '使用组织账号登录即可创建活动或扫码签到',
+      hintWecom: '请将应用「网页授权回调域」设为当前站点域名，并在「可信域名」中登记同源地址（含端口）',
       errNoProvider: '未找到登录方式，请联系管理员',
       errFailed: '登录失败',
+      errWecomEnv: '未配置企业微信前台参数（VITE_WECOM_CORP_ID / VITE_WECOM_AGENT_ID）',
     },
     layout: {
       brand: '扫码签到',
@@ -101,11 +105,16 @@ const messages: Record<
     login: {
       title: 'QR Check-in',
       subtitle: 'Event check-in management',
+      subtitleWecom: 'Sign in with WeCom to manage events or check in.',
       signIn: 'Sign in',
+      signInWecom: 'Sign in with WeCom',
       redirecting: 'Redirecting…',
       hint: 'Sign in with your organization account to manage events or check in.',
+      hintWecom:
+        'Set trusted domains and OAuth callback domain in WeCom admin so they match this site.',
       errNoProvider: 'No sign-in method found. Please contact an administrator.',
       errFailed: 'Sign-in failed',
+      errWecomEnv: 'Missing VITE_WECOM_CORP_ID or VITE_WECOM_AGENT_ID in frontend env.',
     },
     layout: {
       brand: 'QR Check-in',

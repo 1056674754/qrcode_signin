@@ -1,5 +1,7 @@
 # PocketBase OIDC / OAuth2 配置步骤
 
+> 本项目默认推荐使用 **企业微信** 登录时的专门流程，请参阅 [docs/WECOM.md](WECOM.md)。只有在 `VITE_AUTH_MODE=oauth2`（通用 OAuth/OIDC）时需按本节在 PocketBase Admin 中配置 OAuth2 Provider。
+
 1. **首次启动**：运行 PocketBase，浏览器打开 Admin（如 `http://127.0.0.1:8090/_/`），创建 superuser。
 2. **Auth 集合**：使用默认的 `users` 集合（或你命名的 Auth 集合）。
 3. **开启 OAuth2**：进入 **Collections → users → 设置（齿轮）→ Auth options**，启用 **OAuth2**。

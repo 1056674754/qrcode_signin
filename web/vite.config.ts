@@ -10,6 +10,11 @@ export default defineConfig({
   server: {
     port: 5173,
     proxy: {
+      // 与生产 nginx 一致：域名校验文件走 PocketBase（pb_hooks/ww_verify.pb.js）
+      '^/WW_verify_[^/]+\\.txt': {
+        target: process.env.VITE_POCKETBASE_URL || 'http://127.0.0.1:8090',
+        changeOrigin: true,
+      },
       '/api': {
         target: process.env.VITE_POCKETBASE_URL || 'http://127.0.0.1:8090',
         changeOrigin: true,

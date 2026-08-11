@@ -30,18 +30,27 @@ cp .env.docker.example .env
 编辑 `.env`：
 
 ```env
-# 前端：生产环境留空 = 同源（nginx 代理）
+# 前端：生产留空 = 同源（nginx 代理）
 VITE_POCKETBASE_URL=
-VITE_OAUTH_PROVIDER=oidc
+VITE_AUTH_MODE=wecom
+VITE_WECOM_CORP_ID=你的企业corpId
+VITE_WECOM_AGENT_ID=自建应用AgentId
 
-# Nginx 端口（默认 80，生产建议用 443 + SSL）
+# OAuth2/OIDC（仅当 VITE_AUTH_MODE=oauth2）
+# VITE_OAUTH_PROVIDER=oidc
+
+# Nginx（默认 80，生产建议 443）
 NGINX_PORT=80
 
-# PocketBase Admin（可选，首次自动创建）
-PB_ADMIN_EMAIL=admin@yourdomain.com
+# PocketBase Admin（可选）
 PB_ADMIN_PASSWORD=your-secure-password
 
-# OAuth2（必填：端点来自你的 IdP 文档，无仓库内默认域名）
+# ----- 企业微信（VITE_AUTH_MODE=wecom 时必填）
+PB_WECOM_CORP_ID=与前端一致的企业ID
+PB_WECOM_AGENT_SECRET=应用Secret
+# PB_WECOM_FETCH_USER_DETAIL=1
+
+# ----- OAuth2（仅 oauth2 模式；端点参见 IdP 文档）
 PB_OAUTH2_PROVIDER_NAME=oidc
 PB_OAUTH2_CLIENT_ID=你的client_id
 PB_OAUTH2_CLIENT_SECRET=你的client_secret
@@ -50,6 +59,8 @@ PB_OAUTH2_TOKEN_URL=https://你的IdP域名/oauth/token
 PB_OAUTH2_USER_URL=https://你的IdP域名/oauth/userinfo
 PB_OAUTH2_SCOPE=read email profile openid
 ```
+
+说明：环境变量全貌以根目录 [.env.docker.example](../.env.docker.example) 为准。**企业微信**步骤见 [WECOM.md](WECOM.md)。
 
 ### 3. 配置 SSL（HTTPS）
 
@@ -94,18 +105,14 @@ volumes:
 docker compose up -d --build
 ```
 
-### 5. 配置 OAuth2 重定向 URL
+### 5. 回调与授权域名
 
-在 **你的 IdP** 的 OAuth 应用里，**重定向 URL** 填：
+使用 **通用 OAuth/OIDC** 时，在 IdP 侧登记重定向：`https://你的域名/oauth-callback`。  
+使用 **企业微信**时，须在企微自建应用中配置网页授权可信域名（及回调域）；浏览器最终仍落到 `/oauth-callback`，参见 [docs/WECOM.md](WECOM.md)。
 
-```
-https://你的域名/oauth-callback
-```
+### 6. OAuth Provider（oauth2 模式）
 
-### 6. 在 PocketBase Admin 中添加 OAuth Provider
-
-1. 访问 `https://你的域名/_/`
-2. 按 [docs/OIDC-PROVIDER.md](OIDC-PROVIDER.md) 核对 Provider；若使用 Docker 环境变量自动注入，通常无需再手填
+若使用 `pb_hooks/oauth2.pb.js`，一般无需再在 Admin 中手填 OAuth Provider；仍以 [docs/OIDC-PROVIDER.md](OIDC-PROVIDER.md) 为准。
 
 ### 7. 建表
 
@@ -122,4 +129,5 @@ https://你的域名/oauth-callback
 
 - **502 Bad Gateway**：检查 `pocketbase` 容器是否运行（`docker compose ps`）
 - **404 on /api**：检查 nginx 配置中的 `proxy_pass` 是否正确
-- **OAuth 重定向失败**：确认 IdP 侧的重定向 URL 与 `https://你的域名/oauth-callback` 完全一致
+- **OAuth**：IdP / 通用 OAuth 控制台中的回调地址须与前端一致
+- **企业微信**：校验可信域名是否与访问 URL 完全一致（包括端口）；服务器未配置环境变量时出现「企业微信登录未配置」，参见 `.env.docker.example`
