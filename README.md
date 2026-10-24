@@ -76,11 +76,24 @@ docker compose up -d --build
 
 ## 安全与可选防重放
 
-- **密钥**：`events.secret_key` 仅由服务端 Hook 生成，且通过 API 规则仅对活动 owner 可见；大屏请使用主办已登录的浏览器打开，避免泄露密钥。
-- **动态码**：二维码内容为 `{ v, e, c, m }`，其中 `m` 为当前 3 秒时间步的 HMAC-SHA256(secret, `${counter}|${eventId}`) 的 hex；服务端在 `pb_hooks/check_ins.pb.js` 中对 `counter` 做容差校验（默认约 ±4 个时间步），通过后才写入打卡记录。
+- **服务器签发**：主办打开大屏后，每 3 秒调用 `GET /api/qrcheck/events/{eventId}/proof`。接口要求登录且为活动 owner，按服务器时间生成 `{ v, e, c, m, server_time_ms, expires_at_ms }`，响应禁止缓存；不返回活动密钥。浏览器不再用本机时间签名。
+- **失效保护**：展示端用 `performance.now()` 计算请求耗时和显示期限，不依赖电脑日期。网络错误、断网、隐藏页面立即清空二维码；单次请求最多等待 5 秒，每份码最多展示到请求开始后 6 秒。恢复网络、回到前台或恢复页面时重新获取；迟到的响应/绘图不会重新显示旧码。
+- **密钥**：`events.secret_key` 仅供服务端签发；活动 API 响应隐藏该字段，不修改数据库里的原值。新展示页与隐藏密钥的 Hook 必须配套发布，旧展示页需要刷新。
+- **动态码**：二维码仍使用 v1 `{ v, e, c, m }` 协议，`m` 为服务器 3 秒时间步的 HMAC-SHA256(secret, `${counter}|${eventId}`) hex；服务端在 `pb_hooks/check_ins.pb.js` 中保持 ±4 个时间步校验，不放宽旧码有效期。`expires_at_ms` 是当前后端校验窗口的上界，不是新增的长期授权。
+- **登录延迟**：外部扫码后登录仍会消耗二维码有效期；若登录结束时已过期，需要重新扫描实时码。本改动不延长有效期，也不解决所有登录链路问题。
 - **防重放（可选）**：当前实现允许同一用户在有效时间窗口内多次提交同一码；若需「同一 3 秒窗口内每人仅能打卡一次」，可在 `check_ins` 表增加 `counter` 字段并在 Hook 中查库去重，或对 `(user, event, counter)` 建唯一约束。
+
+## 回归验证
+
+前端构建沿用 `cd web && npm run build`。服务器签发与展示生命周期回归不新增依赖，使用 Node.js 22.6+：
+
+```bash
+node --experimental-strip-types --test .tests/*.test.mjs
+```
+
+覆盖服务端签名与现有校验兼容、主办/非主办权限、密钥不出库、客户端日期前后偏移一天、断网恢复、请求超时、页面暂停和迟到响应。生产发布前还应在独立 PocketBase 数据目录验证真实 HTTP 与浏览器动线；不要将测试用户/活动写入生产数据库。
 
 ## 技术说明
 
-- **HMAC 对齐**：前端使用 Web Crypto `crypto.subtle.sign('HMAC', key, data)` 输出 hex；服务端使用 PocketBase `$security.hs256(text, secret)`。若遇校验失败，请确认两边消息格式一致（`${counter}|${eventId}`）及 hex 大小写一致。
+- **HMAC 对齐**：服务器签发与校验均使用 PocketBase `$security.hs256(text, secret)`，消息保持 `${counter}|${eventId}`；浏览器只将服务器载荷画成二维码，不参与签名或授时。
 - **扫码**：支持 Barcode Detection API 的浏览器会使用摄像头实时扫码；否则可点击「上传二维码图片」使用 jsQR 解码。

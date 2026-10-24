@@ -2,16 +2,17 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import QRCode from 'qrcode';
 import { pb } from '@/lib/pb';
-import { computeProof } from '@/lib/totp';
+import { createServerQr, type QrState, type ServerProof } from '@/lib/serverQr';
 import type { Event } from '@/lib/pb';
 import { LanguageSwitch, useI18n } from '@/lib/i18n';
 
 export default function Display() {
   const { t, localeTag } = useI18n();
   const { eventId } = useParams<{ eventId: string }>();
-    const navigate = useNavigate();
+  const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [qrState, setQrState] = useState<QrState>('loading');
   const [checkinCount, setCheckinCount] = useState(0);
   const [recentCheckins, setRecentCheckins] = useState<Array<{ id: string; name: string; time: string }>>([]);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -26,14 +27,8 @@ export default function Display() {
   useEffect(() => {
     if (!eventId) return;
     pb.collection('events')
-      .getOne<Event>(eventId)
-      .then((ev) => {
-        if (!ev.secret_key) {
-          setError(t('display.errSecret'));
-          return;
-        }
-        setEvent(ev);
-      })
+      .getOne<Event>(eventId, { fields: 'id,name,owner,created' })
+      .then(setEvent)
       .catch((e) => setError(e.message || t('display.errLoad')));
   }, [eventId, t]);
 
@@ -91,24 +86,58 @@ export default function Display() {
   }, [event]);
 
   useEffect(() => {
-    if (!event?.secret_key || !eventId || !canvasRef.current) return;
+    if (!event || !eventId || !canvasRef.current) return;
 
-    const tick = async () => {
-      const payload = await computeProof(eventId, event.secret_key!);
-      const url = `${window.location.origin}/s/${eventId}?c=${payload.c}&m=${payload.m}&v=1`;
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      await QRCode.toCanvas(canvas, url, {
-        width: qrSize,
-        margin: 2,
-        color: { dark: '#000', light: '#fff' },
-      });
+    const qr = createServerQr({
+      eventId,
+      fetchProof: (signal) => pb.send<ServerProof>(
+        `/api/qrcheck/events/${encodeURIComponent(eventId)}/proof`,
+        { method: 'GET', signal, cache: 'no-store', requestKey: null },
+      ),
+      render: async (proof, isCurrent) => {
+        const url = `${window.location.origin}/s/${eventId}?c=${proof.c}&m=${proof.m}&v=1`;
+        const buffer = document.createElement('canvas');
+        await QRCode.toCanvas(buffer, url, {
+          width: qrSize,
+          margin: 2,
+          color: { dark: '#000', light: '#fff' },
+        });
+        const canvas = canvasRef.current;
+        if (!canvas || !isCurrent()) return;
+        canvas.width = buffer.width;
+        canvas.height = buffer.height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Canvas is unavailable');
+        ctx.drawImage(buffer, 0, 0);
+      },
+      clear: () => {
+        const canvas = canvasRef.current;
+        canvas?.getContext('2d')?.clearRect(0, 0, canvas.width, canvas.height);
+      },
+      onState: setQrState,
+    });
+    const resume = () => {
+      if (document.visibilityState === 'hidden' || !navigator.onLine) qr.suspend();
+      else qr.refresh();
     };
-
-    tick();
-    const interval = setInterval(tick, 3000);
-    return () => clearInterval(interval);
-  }, [event?.secret_key, eventId, qrSize]);
+    const suspend = () => qr.suspend();
+    document.addEventListener('visibilitychange', resume);
+    window.addEventListener('online', resume);
+    window.addEventListener('offline', suspend);
+    window.addEventListener('focus', resume);
+    window.addEventListener('pageshow', resume);
+    window.addEventListener('pagehide', suspend);
+    resume();
+    return () => {
+      document.removeEventListener('visibilitychange', resume);
+      window.removeEventListener('online', resume);
+      window.removeEventListener('offline', suspend);
+      window.removeEventListener('focus', resume);
+      window.removeEventListener('pageshow', resume);
+      window.removeEventListener('pagehide', suspend);
+      qr.stop();
+    };
+  }, [event, eventId, qrSize]);
 
   const toggleFullscreen = useCallback(() => {
     const el = containerRef.current;
@@ -149,8 +178,13 @@ export default function Display() {
 
       <h1 className="display-title">{event.name}</h1>
       <p className="display-hint">{t('display.scanHint')}</p>
-      <div className="display-qr-wrap" ref={qrWrapRef}>
-        <canvas ref={canvasRef} className="display-canvas" />
+      <div className="display-qr-wrap" ref={qrWrapRef} style={{ minHeight: qrSize + 32, minWidth: qrSize + 32, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <canvas ref={canvasRef} className="display-canvas" aria-label={t('display.qrLabel')} hidden={qrState !== 'ready'} style={{ display: qrState === 'ready' ? 'block' : 'none' }} />
+        {qrState !== 'ready' && (
+          <p role="status" style={{ maxWidth: qrSize, color: '#555' }}>
+            {t(qrState === 'error' ? 'display.qrUnavailable' : 'display.qrLoading')}
+          </p>
+        )}
       </div>
       <div className="display-meta">
         <span className="display-count">{t('display.checkedInCount').replace('{count}', String(checkinCount))}</span>

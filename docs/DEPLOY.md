@@ -125,6 +125,14 @@ docker compose up -d --build
 - **更新代码**：`docker compose up -d --build web nginx`
 - **备份数据**：`./pb_data` 目录（SQLite 数据库）
 
+## 服务器签发二维码的升级注意事项
+
+- `pb_hooks/qr_proof.pb.js`、`pb_hooks/events.pb.js` 和新版前端配套发布。前者提供主办专用签发接口，后者从活动响应隐藏密钥；数据库结构和历史签到不变，无迁移 SQL。
+- 先在独立测试库验证，再备份现役前端镜像与这两个 Hook。切换后确认 PocketBase 已加载新路由（匿名访问应为 401，非主办为 403），并刷新旧大屏页面。
+- **保留现役登录方式**：此仓库默认 `VITE_AUTH_MODE=wecom`，不能据此覆盖原来的 OIDC 站点。2026-10-24 核实 `stfact.suisqp.cn` 现役为 OAuth2/OIDC，构建必须显式指定 `VITE_AUTH_MODE=oauth2`、`VITE_OAUTH_PROVIDER=oidc`，其余 URL/Provider 配置沿用现役值；不输出服务端密钥。
+- 仓库没有 `deploy` npm 脚本；实际生产部署需按目标环境规则确认命令与目标路径后执行，不直接照抄通用的全栈重建命令。二维码升级不应重建数据库或覆盖 `.env`。
+- 回滚必须同时恢复旧前端镜像和上述 Hook；只回滚前端但仍隐藏密钥会使旧大屏无法生成二维码。
+
 ## 故障排查
 
 - **502 Bad Gateway**：检查 `pocketbase` 容器是否运行（`docker compose ps`）

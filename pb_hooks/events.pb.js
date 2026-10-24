@@ -11,3 +11,8 @@ onRecordCreateRequest((e) => {
   }
   e.next();
 }, "events");
+
+onRecordEnrich((e) => {
+  e.record.hide("secret_key");
+  e.next();
+}, "events");
