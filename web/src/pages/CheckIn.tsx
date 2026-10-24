@@ -1,3 +1,4 @@
+import {reportCaught} from '@/monitoring/runtime';
 import { useRef, useState, useEffect, useCallback } from 'react';
 import jsQR from 'jsqr';
 import { pb } from '@/lib/pb';
@@ -85,12 +86,13 @@ export default function CheckIn() {
       try {
         const ev = await pb.collection('events').getOne(payload.e);
         name = ev.name as string;
-      } catch (_) {}
+      } catch (e) {reportCaught(e,'checkin.event','events.read');}
       setEventName(name);
       setSuccessTime(new Date().toLocaleString(localeTag));
       setPhase('success');
     } catch (e) {
       submittedRef.current = false;
+      reportCaught(e,'checkin.submit','checkins.create');
       console.warn('check-in failed', e);
       // ClientResponseError 会把 PocketBase 返回的 message 写在 Error.message 上
       const display =
@@ -138,7 +140,7 @@ export default function CheckIn() {
         video.setAttribute('playsinline', 'true');
         video.play().then(() => setCameraReady(true));
       })
-      .catch(() => setCameraError(t('checkin.cameraError')));
+      .catch((e) => {reportCaught(e,'checkin.camera');setCameraError(t('checkin.cameraError'));});
 
     const tick = async () => {
       if (cancelled || submittedRef.current || !scanningRef.current) return;

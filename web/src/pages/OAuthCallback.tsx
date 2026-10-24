@@ -1,3 +1,4 @@
+import {reportCaught} from '@/monitoring/runtime';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { pb } from '@/lib/pb';
@@ -47,6 +48,7 @@ export default function OAuthCallback() {
           navigate('/events', { replace: true });
         })
         .catch((err: unknown) => {
+          reportCaught(err,'oauth.exchange','auth.wecom');
           console.error(err);
           let msg = t('oauth.errUnknown');
           if (typeof err === 'object' && err !== null && 'message' in err && typeof (err as { message: unknown }).message === 'string') {
@@ -82,6 +84,7 @@ export default function OAuthCallback() {
         navigate('/events', { replace: true });
       })
       .catch((err: Error) => {
+        reportCaught(err,'oauth.exchange','auth.exchange');
         console.error(err);
         setError(t('oauth.errFailed') + ': ' + (err.message || t('oauth.errUnknown')));
       });

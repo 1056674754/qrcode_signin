@@ -1,3 +1,4 @@
+import {reportCaught} from '@/monitoring/runtime';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { pb } from '@/lib/pb';
@@ -65,6 +66,7 @@ function CreateModal({ open, onClose, onCreate }: {
       await onCreate(name.trim());
       onClose();
     } catch (err) {
+      reportCaught(err,'events.create','events.create');
       setError((err as Error).message || t('events.createFailed'));
     } finally {
       setCreating(false);
@@ -114,6 +116,7 @@ export default function Events() {
     try {
       await exportCSV(ev.id, ev.name, t, localeTag);
     } catch (e) {
+      reportCaught(e,'events.export','checkins.list');
       console.error(e);
     } finally {
       setExporting(null);
@@ -124,7 +127,7 @@ export default function Events() {
     pb.collection('events')
       .getFullList<Event>({ sort: '-created' })
       .then(setEvents)
-      .catch((e) => { console.error(e); setEvents([]); })
+      .catch((e) => { reportCaught(e,'events.load','events.list'); console.error(e); setEvents([]); })
       .finally(() => setLoading(false));
   }, []);
 

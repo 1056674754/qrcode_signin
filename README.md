@@ -37,6 +37,8 @@ pocketbase/          # 若不用 Docker：可放本地下载的可执行文件
 
 ### Docker Compose（推荐生产环境）
 
+**前端构建前置门禁已调整**：`web/Dockerfile` 只接收已在镜像外构建、完成私有 sourcemap 上传并核验的精确静态产物，不再在镜像里安装依赖或运行 Vite。现有 Compose 的前端 build args 不再负责构建配置；OAuth/企微的公开配置须在镜像外构建时提供。操作顺序、凭据边界、未验证项见 [.monitoring-readme.md](.monitoring-readme.md)。未通过上传门禁，镜像构建必须失败；不能直接沿用下方旧的首次启动命令跳过前置步骤。
+
 项目根目录提供 [docker-compose.yml](docker-compose.yml)：**nginx 反向代理**统一入口，前端与 PocketBase API 同源，避免 CORS。
 
 ```bash
