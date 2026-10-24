@@ -6,3 +6,7 @@ web/dist/
 .env
 .env.local
 *.tsbuildinfo
+web/.monitoring-private/
+web/.cache/
+web/.tests/.fixture-*/
+web/.evidence/

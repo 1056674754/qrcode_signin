@@ -8,6 +8,7 @@ import Display from '@/pages/Display';
 import CheckIn from '@/pages/CheckIn';
 import History from '@/pages/History';
 import ScanLand from '@/pages/ScanLand';
+import {MonitoringNavigation} from './monitoring/ErrorBoundary';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   if (!pb.authStore.isValid) {
@@ -19,6 +20,7 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 export default function App() {
   return (
     <BrowserRouter>
+      <MonitoringNavigation />
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/oauth-callback" element={<OAuthCallback />} />

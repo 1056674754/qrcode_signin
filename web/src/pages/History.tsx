@@ -1,3 +1,4 @@
+import {reportCaught} from '@/monitoring/runtime';
 import { useState, useEffect } from 'react';
 import { pb } from '@/lib/pb';
 import { useI18n } from '@/lib/i18n';
@@ -25,6 +26,7 @@ export default function History() {
       })
       .then(setRecords)
       .catch((e) => {
+        reportCaught(e,'history.load','checkins.list');
         console.error(e);
         setRecords([]);
       })

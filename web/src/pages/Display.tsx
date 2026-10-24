@@ -1,3 +1,4 @@
+import {reportCaught} from '@/monitoring/runtime';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useState, useEffect, useRef, useCallback } from 'react';
 import QRCode from 'qrcode';
@@ -29,7 +30,7 @@ export default function Display() {
     pb.collection('events')
       .getOne<Event>(eventId, { fields: 'id,name,owner,created' })
       .then(setEvent)
-      .catch((e) => setError(e.message || t('display.errLoad')));
+      .catch((e) => {reportCaught(e,'display.load','events.read');setError(e.message || t('display.errLoad'));});
   }, [eventId, t]);
 
   const fetchCheckins = useCallback(() => {
@@ -51,7 +52,7 @@ export default function Display() {
           };
         }));
       })
-      .catch(() => {});
+      .catch((e) => {reportCaught(e,'display.checkins','checkins.list');});
   }, [eventId, t, localeTag]);
 
   useEffect(() => {
@@ -93,7 +94,7 @@ export default function Display() {
       fetchProof: (signal) => pb.send<ServerProof>(
         `/api/qrcheck/events/${encodeURIComponent(eventId)}/proof`,
         { method: 'GET', signal, cache: 'no-store', requestKey: null },
-      ),
+      ).catch((e) => {reportCaught(e,'display.proof','qr.proof');throw e;}),
       render: async (proof, isCurrent) => {
         const url = `${window.location.origin}/s/${eventId}?c=${proof.c}&m=${proof.m}&v=1`;
         const buffer = document.createElement('canvas');
@@ -101,7 +102,7 @@ export default function Display() {
           width: qrSize,
           margin: 2,
           color: { dark: '#000', light: '#fff' },
-        });
+        }).catch((e) => {reportCaught(e,'display.render');throw e;});
         const canvas = canvasRef.current;
         if (!canvas || !isCurrent()) return;
         canvas.width = buffer.width;

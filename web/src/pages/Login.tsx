@@ -1,3 +1,4 @@
+import {reportCaught} from '@/monitoring/runtime';
 import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { pb } from '@/lib/pb';
@@ -56,6 +57,7 @@ export default function Login() {
       const callbackUrl = window.location.origin + '/oauth-callback';
       window.location.href = provider.authURL + encodeURIComponent(callbackUrl);
     } catch (err) {
+      reportCaught(err,'login.methods','auth.methods');
       setError((err as Error).message || t('login.errFailed'));
       setLoading(false);
     }
@@ -96,6 +98,7 @@ export default function Login() {
 
       window.location.href = authUrl;
     } catch (err) {
+      reportCaught(err,'login.redirect');
       setError((err as Error).message || t('login.errFailed'));
       setLoading(false);
     }
