@@ -16,7 +16,7 @@ function sameFiles(root,expected){if(JSON.stringify(hashes(root))!==JSON.stringi
 export function sourceRelease(root,base,publicEnv={}){
   if(!/^[a-f0-9]{40}$/.test(base))throw Error('exact baseline required');
   const hash=createHash('sha256');
-  const inputs=['src','scripts','package.json','package-lock.json','vite.config.ts','index.html','tsconfig.json','tsconfig.node.json'];
+  const inputs=['src','scripts/private-artifacts.mjs','scripts/image-guard.cjs','Dockerfile','.dockerignore','nginx.conf','package.json','package-lock.json','vite.config.ts','index.html','tsconfig.json','tsconfig.node.json'];
   for(const input of inputs){const p=path.join(root,input);if(!fs.existsSync(p))continue;for(const file of fs.statSync(p).isDirectory()?files(p).map(f=>input+'/'+f):[input])hash.update(file+'\0').update(fs.readFileSync(path.join(root,file)));}
   const publicDefaults={VITE_AUTH_MODE:'wecom',VITE_OAUTH_PROVIDER:'oidc',VITE_POCKETBASE_URL:'',VITE_WECOM_CORP_ID:'',VITE_WECOM_AGENT_ID:''};
   for(const [key,fallback] of Object.entries(publicDefaults))hash.update(key+'\0'+String(publicEnv[key]??fallback)+'\0');

@@ -43,3 +43,43 @@ test('starting a build invalidates old upload receipt before compiler/output wor
     invalidateUpload(root);assert.throws(()=>verifyArtifacts(root),/upload/);
   }finally{fs.rmSync(root,{recursive:true,force:true});}
 });
+for (const input of ['Dockerfile', '.dockerignore', 'nginx.conf', 'scripts/image-guard.cjs']) {
+  test(`runtime image input ${input} changes release and rebuild invalidates prior upload receipt`, async () => {
+    const root = fixture();
+    try {
+      fs.mkdirSync(path.join(root, 'scripts'), {recursive: true});
+      for (const file of ['Dockerfile', '.dockerignore', 'nginx.conf', 'scripts/image-guard.cjs']) {
+        fs.writeFileSync(path.join(root, file), 'FAKE authored input A\n');
+      }
+      const before = sourceRelease(root, 'a'.repeat(40));
+      await stageArtifacts(root, before);
+      await uploadArtifacts(root, async () => {});
+      verifyArtifacts(root);
+      fs.appendFileSync(path.join(root, input), 'FAKE authored input B\n');
+      const after = sourceRelease(root, 'a'.repeat(40));
+      assert.notEqual(after, before, `${input} must bind the release digest`);
+      fs.copyFileSync(path.join(root, '.monitoring-private/assets/index-abcdefgh.js.map'),
+        path.join(root, 'dist/assets/index-abcdefgh.js.map'));
+      const rebuilt = await stageArtifacts(root, after);
+      assert.equal(rebuilt.release, after);
+      assert(!fs.existsSync(path.join(root, '.monitoring-private/upload-receipt.json')));
+      assert.throws(() => verifyArtifacts(root), /upload/);
+    } finally { fs.rmSync(root, {recursive: true, force: true}); }
+  });
+}
+test('authored fingerprint is deterministic and ignores private/git/cache/generated or unrelated script files', () => {
+  const root = fixture();
+  try {
+    fs.mkdirSync(path.join(root, 'scripts'));
+    fs.writeFileSync(path.join(root, 'scripts/image-guard.cjs'), 'FAKE guard');
+    fs.writeFileSync(path.join(root, 'scripts/private-artifacts.mjs'), 'FAKE artifact tool');
+    const before = sourceRelease(root, 'a'.repeat(40));
+    assert.equal(sourceRelease(root, 'a'.repeat(40)), before);
+    for (const file of ['.git/HEAD', '.cache/private', '.monitoring-private/upload-receipt.json',
+      'dist/generated.js', '.env', 'scripts/.cache/private', 'scripts/unrelated-local-note']) {
+      fs.mkdirSync(path.dirname(path.join(root, file)), {recursive: true});
+      fs.writeFileSync(path.join(root, file), 'FAKE private/generated input, never hash');
+    }
+    assert.equal(sourceRelease(root, 'a'.repeat(40)), before);
+  } finally { fs.rmSync(root, {recursive: true, force: true}); }
+});
