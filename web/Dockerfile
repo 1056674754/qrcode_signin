@@ -9,4 +9,7 @@ RUN node image-guard.cjs
 FROM nginx:alpine
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=artifact-guard /verify/dist /usr/share/nginx/html
+# Public bytes may arrive from a restrictive off-image transport context.
+RUN find /usr/share/nginx/html -type d -exec chmod 0755 {} + \
+ && find /usr/share/nginx/html -type f -exec chmod 0644 {} +
 EXPOSE 80
